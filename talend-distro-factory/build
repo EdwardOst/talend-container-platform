@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+IFS=$'\n\t'
+
+
+if [ "${1:-}" == "-h" ]; then
+    declare usage="./build [<talend_version>]"
+    echo "${usage}"
+    exit
+fi
+
+# parameters
+
+declare -r talend_version="${1:-${talend_version:-8.0.1}}"
+
+# config can be overridden by shell variables
+
+declare -r image_name="${image_name:-talend-distro}"
+declare -r base_builder_image="${base_builder_image:-alpine}"
+declare -r base_builder_image_version="${base_builder_image_version:-3.18.0}"
+
+declare -r image_tag="${image_tag:-${image_name}:${talend_version}}"
+
+docker buildx build \
+  --no-cache \
+  --build-arg base_builder_image="${base_builder_image}" \
+  --build-arg base_builder_image_version="${base_builder_image_version}" \
+  --build-arg talend_version="${talend_version}" \
+  --secret id=talend,src=talend.credentials \
+  -t "${image_tag}" \
+  .

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+IFS=$'\n\t'
+
+
+if [ "${1:-}" == "-h" ]; then
+    declare usage="./create [<talend_version>]"
+    echo "${usage}"
+    exit
+fi
+
+
+# parameters
+
+declare -r talend_version="${1:-8.0.1}"
+
+
+# config can be overridden by shell variables
+
+declare -r image_name="${image_name:-talend-distro}"
+
+
+docker create --name  "${image_name}-${talend_version}" "${image_name}:${talend_version}"
+

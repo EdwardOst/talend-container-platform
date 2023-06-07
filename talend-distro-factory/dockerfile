@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1
+# Talend download data container
+ARG base_builder_image=alpine
+ARG base_builder_image_version=3.18.0
+
+FROM ${base_builder_image}:${base_builder_image_version} AS builder
+
+ARG talend_version=8.0.1
+
+RUN apk add wget
+RUN mkdir downloads
+COPY talend-manifest.txt .
+RUN --mount=type=secret,id=talend,target=talend.credentials \
+  IFS="=" read -r property_name talend_user < talend.credentials \
+  IFS="=" read -r property_name talend_password < talend.credentials \
+  && cat talend-manifest.txt \
+       | xargs -n 1 -P 2 \
+          wget \
+            -P downloads \
+            --http-user="${talend_user}" \
+            --http-password="${talend_password}"
+
+
+
+FROM scratch
+ARG talend_version=8.0.1
+
+LABEL maintainer="eost@talend.com"
+LABEL talend_version=${talend_version}
+
+COPY --from=builder /downloads talend/
+VOLUME talend
+ENTRYPOINT [ "none" ]
