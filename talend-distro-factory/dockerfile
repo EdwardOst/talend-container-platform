@@ -11,16 +11,14 @@ RUN apk add wget
 RUN mkdir downloads
 COPY talend-manifest.txt .
 RUN --mount=type=secret,id=talend,target=talend.credentials \
-  IFS="=" read -r property_name talend_user < talend.credentials \
-  IFS="=" read -r property_name talend_password < talend.credentials \
+  { IFS="=" read -r property_name talend_user; IFS="=" read -r property_name talend_password; } < talend.credentials \
   && cat talend-manifest.txt \
-       | xargs -n 1 -P 2 \
-          wget \
-            -P downloads \
-            --http-user="${talend_user}" \
-            --http-password="${talend_password}"
-
-
+         | xargs -n 1 -P 2 \
+             wget \
+               --quiet \
+               --http-user="${talend_user}" \
+               --http-password="${talend_password}" \
+               -P downloads
 
 FROM scratch
 ARG talend_version=8.0.1
