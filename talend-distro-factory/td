@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "./talend-distro.sh"
+
+INFO_LOG=true
+
+talend_distro -h
