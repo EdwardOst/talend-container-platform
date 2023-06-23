@@ -4,79 +4,100 @@
 
 export TALEND_DISTRO_FLAG=1
 
-talend_distro_script_path=$(readlink -e "${BASH_SOURCE[0]}")
-talend_distro_script_dir="${talend_distro_script_path%/*}"
-
-talend_distro_util_path=$(readlink -e "${talend_distro_script_dir}/util/util.sh")
-# shellcheck source=util/util.sh
-source "${talend_distro_util_path}"
-
 set -u
+
+# shellcheck source=util/util.sh
+source "util/util.sh"
+
+# shellcheck source=util/getoptions/getoptions.sh
+source "util/getoptions/getoptions.sh"
+
+# shellcheck source=build.sh
+source "build.sh"
+
+# shellcheck source=create.sh
+source "create.sh"
 
 function talend_distro() {
 
-  local help_flag=0
-  talend_distro_parse_args "$@"
-  # exit with success value if help was requested
-  if [ "${help_flag}" -eq 1 ] ; then
-      return 0
+  # parameters
+  local talend_version
+  local image_name
+
+  # helper variable
+  local args
+
+  local -r parser_name="${FUNCNAME[0]}_parser"
+  # shellcheck disable=SC2016
+  if [ ! "$(type -t '${parser_name}')" == 'function' ]; then
+
+    function talend_distro_parser_def() {
+      setup   args plus:true help:usage abbr:true -- "Usage: talend_distro [options...] [arguments...]" ''
+      msg -- 'Options:'
+      # shellcheck disable=SC1083
+      param   talend_version       -v    --talend_version    init:="8.0.1" pattern:"8.0.1 | 7.3.1"
+      param   image_name           -i    --image_name        init:="talend-distro"
+      disp    :usage               -h           -- "help summary"
+      disp    :talend_distro_help        --help -- "help details"
+      msg -- '' 'Commands'
+      cmd     build                             -- "build the Talend downloads data container image"
+      cmd     create                            -- "create an instance of the Talend downloads data container"
+    }
+
+    eval "$(getoptions "${parser_name}_def" "${parser_name}")"
   fi
 
-  # pameters are declared and defined here
-  # they can be overridden by command line args but once set are read-only
-  local -r talend_version="${talend_version_arg:-${talend_version:-${TALEND_VERSION:-8.0.1}}}"
-  local -r image_name="${image_name_arg:-${image_name:-${IMAGE_NAME:-talend-distro}}}"
+  # call the function arg parser
+  "${parser_name}" "${@}"
 
-  local -r image_tag="${image_tag:-${image_name}:${talend_version}}"
+  # reset the stack $@ variable to the positional arguments
+  eval "set -- ${args}"
 
-  # config variables cannot be set by parameters and must be inherited from shell or environment variables
-  local base_builder_image
-  local base_builder_image_version
+  # make parameters immutable
+  readonly talend_version image_name
 
-  talend_distro_init
+  # configuration settings can be overrident by shell or environment variables
 
-  # derived config settings
-  local image_tag
+  # calculate derived settings
+  local -r image_tag="${image_name}:${talend_version}"
+
+  # body of the function
 
   infoVar talend_version
   infoVar image_name
-  infoVar base_builder_image
-  infoVar base_builder_image_version
   infoVar image_tag
-}
 
-function talend_distro_init() {
-  base_builder_image="${base_builder_image:-${BASE_BUILDER_IMAGE:-alpine}}"
-  base_builder_image_version="${base_builder_image_version:-${BASE_BUILDER_IMAGE_vERSION:-3.18.0}}"
-}
-
-
-function talend_distro_parse_args() {
-  local OPTIND=1
-  while getopts ":hv:i:" opt; do
-    case "$opt" in
-      h)
-        talend_distro_help
-        return 0
+  if [ $# -gt 0 ]; then
+    local cmd=$1
+    case "${cmd}" in
+      build)
+        shift
+        talend_distro_build "$@"
+        return $?
         ;;
-      v)
-        talend_version_arg="${OPTARG}"
+      create)
+        shift
+        talend_distro_create "$@"
+        return $?
         ;;
-      i)
-        image_name_arg="${OPTARG}"
-        ;;
-      ?)
-        talend_distro_help >&2
-        return 2
+      --) # no subcommand, arguments only
     esac
+  fi
+
+  echo "  -- arguments begin"
+  local arg
+  for arg in "${@}"; do
+    if [[ ! "${arg}" == "--" ]]; then
+      printf "    %s=%s\n" "${arg}" "${!arg}"
+    fi
   done
+  echo "  -- arguments end"
+
+  return 0
 }
-
-
 
 
 function talend_distro_help() {
-  local help_flag=1
   local usage
   define usage <<EOF
 Tools to download Talend subscription binary artifacts.
@@ -124,31 +145,4 @@ Configuration:
       The tag of the build image.
 EOF
     echo "${usage}"
-}
-
-
-function talend_distro_build() {
-
-
-
-# parameters
-
-declare -r talend_version="${1:-${talend_version:-8.0.1}}"
-declare -r image_name="${image_name:-talend-distro}"
-
-# config can be overridden by shell variables
-
-declare -r base_builder_image="${base_builder_image:-alpine}"
-declare -r base_builder_image_version="${base_builder_image_version:-3.18.0}"
-
-declare -r image_tag="${image_tag:-${image_name}:${talend_version}}"
-
-docker buildx build \
-  --no-cache \
-  --build-arg base_builder_image="${base_builder_image}" \
-  --build-arg base_builder_image_version="${base_builder_image_version}" \
-  --build-arg talend_version="${talend_version}" \
-  --secret id=talend,src=talend.credentials \
-  -t "${image_tag}" \
-  .
 }

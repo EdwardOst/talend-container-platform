@@ -15,7 +15,8 @@ The talend-distro image is a data container so it is derived from the scratch im
 
 dockerfile - specification of the data container to be built.  Multi-stage docker build.
 
-talend-manifest.txt - list of urls to download
+talend.manifest - list of urls to download
+short.manifest - sha256 urls, used for quick tests
 
 talend.credentials - talend userid and password.
 This is a property file and the properties must occur in the order specified.  The equals sign is the separator.

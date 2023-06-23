@@ -18,7 +18,7 @@ declare -r talend_version="${1:-8.0.1}"
 # config can be overridden by shell variables
 
 declare -r image_name="${image_name:-talend-distro}"
-declare -r tester_image="alpine"
-declare -r tester_image_version="3.18.0"
+declare -r tester_image="${tester_image:-busybox}"
+declare -r tester_image_version="${tester_image_version:-latest}"
 
 docker run --name test --volumes-from "${image_name}-${talend_version}" --rm -it "${tester_image}:${tester_image_version}" ls /talend

@@ -4,15 +4,14 @@ ARG base_builder_image=alpine
 ARG base_builder_image_version=3.18.0
 
 FROM ${base_builder_image}:${base_builder_image_version} AS builder
-
-ARG talend_version=8.0.1
+ARG talend_manifest=talend.manifest
 
 RUN apk add wget
 RUN mkdir downloads
-COPY talend-manifest.txt .
+COPY ${talend_manifest} talend.manifest
 RUN --mount=type=secret,id=talend,target=talend.credentials \
   { IFS="=" read -r property_name talend_user; IFS="=" read -r property_name talend_password; } < talend.credentials \
-  && cat talend-manifest.txt \
+  && cat talend.manifest \
          | xargs -n 1 -P 2 \
              wget \
                --quiet \
