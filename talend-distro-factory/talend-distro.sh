@@ -15,18 +15,26 @@ source "util/getoptions/getoptions.sh"
 # shellcheck source=build.sh
 source "build.sh"
 
-# shellcheck source=create.sh
-source "create.sh"
+# shellcheck source=run.sh
+source "run.sh"
 
 function talend_distro() {
 
-  # declare and initialize inherited parameters and settings
+  # declare and initialize inherited parameters and settings if they do not already exist so that they do not pollute the global shell space when initialized
 
-  # declare and initialize parameters
-  local factory_image="${factory_image:-${TALEND_DISTRO_FACTORY_IMAGE:-${talend_distro_factory_image_default:-talend-distro}}}"
-  local talend_version="${talend_version:-${TALEND_DISTRO_TALEND_VERSION:-${talend_distro_talend_version_default:-8.0.1}}}"
+  # initialize inherited parameters and settings
 
-  # helper variable
+  # declare parameters
+  local talend_version
+  local factory_image
+  local factory_tag
+
+  # initialize parameters
+  talend_version="${talend_version:-${TALEND_DISTRO_TALEND_VERSION:-${talend_distro_talend_version_default:-8.0.1}}}"
+  factory_image="${factory_image:-${TALEND_DISTRO_FACTORY_IMAGE:-${talend_distro_factory_image_default:-talend-distro}}}"
+  factory_tag="${factory_tag:-${TALEND_DISTRO_FACTORY_TAG:-${talend_distro_factory_tag:-${talend_version}}}}"
+
+  # helper variables
   local args
 
   local -r parser_name="${FUNCNAME[0]}_parser"
@@ -39,11 +47,13 @@ function talend_distro() {
       # shellcheck disable=SC1083
       param   talend_version       -v    --talend_version    init:="${talend_version}" pattern:"8.0.1 | 7.3.1"
       param   factory_image        -f    --factory_image     init:="${factory_image}"
+      param   factory_tag          -t    --factory_tag       init:="${factory_tag}"
       disp    :usage               -h           -- "help summary"
       disp    :talend_distro_help        --help -- "help details"
       msg -- '' 'Commands'
       cmd     build                             -- "build the Talend distro factory image"
       cmd     run                               -- "run a Talend distro factory container to create an instance of the Talend downloads volume"
+      cmd     test                              -- "run a Talend distro factory container to downloading only sha256 to test connectivity"
     }
 
     eval "$(getoptions "${parser_name}_def" "${parser_name}")"
@@ -55,20 +65,21 @@ function talend_distro() {
   # reset the stack $@ variable to the positional arguments
   eval "set -- ${args}"
 
+  # make inherited parameters immutable
+
   # make parameters immutable
-  required talend_version factory_image
-  readonly talend_version factory_image
+  required talend_version factory_image factory_tag
+  readonly talend_version factory_image factory_tag
 
   # configuration settings can be overrident by shell or environment variables
 
   # calculate derived settings
-  local -r image_tag="${factory_image}:${talend_version}"
 
   # body of the function
 
   infoVar talend_version
   infoVar factory_image
-  infoVar image_tag
+  infoVar factory_tag
 
   if [ $# -gt 0 ]; then
     local cmd=$1
@@ -78,10 +89,9 @@ function talend_distro() {
         talend_distro_build "$@"
         return $?
         ;;
-      create)
+      run)
         shift
-        echo "****** talend_distro_run not enabled  *******"
-#        talend_distro_run "$@"
+        talend_distro_run "$@"
         return $?
         ;;
       test)
@@ -114,8 +124,8 @@ Tools to download Talend subscription binary artifacts.
 
 Usage:
     talend-distro [options] [ command ] [ args ]
-    options : [ -v -i ]
-    command : [ config | build | create | test ]
+    options : [ -v -f ]
+    command : [ build | run | test ]
     args : see individual commands
 
 Options:
@@ -123,11 +133,14 @@ Options:
     -v    --talend_version
       default = 8.0.1
       The version of Talend software to be downloaded.
-      The version will be used as the tag for the image.
 
-    -i    --factory_image
+    -f --factory_image
       default = talend-distro
       The name of the factory image to be created.
+
+    --factory_tag
+      default = <talend_version>
+      Docker tag of the factory image.
 
 Commands:
 
@@ -146,12 +159,6 @@ Configuration:
     4.  Shell default variables
     4.  hard-coded defaults.
 
-    factory_base_image
-      default = alpine
-      The base image used to create the factory image.
-    factory_base_image_version
-      default = 3.18.0
-      The tag of the factory base image.
 EOF
     echo "${usage}"
 }

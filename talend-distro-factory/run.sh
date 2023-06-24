@@ -14,27 +14,33 @@ source "util/getoptions/getoptions.sh"
 
 function talend_distro_run() {
 
-  # parameters
-  local image_tag
-  local container_name
-  local volume_name
-
   local args
 
   # declare and initialize inherited parameters and settings
-  local -r image_name="${image_name:-${TALEND_DISTRO_IMAGE_NAME:-${talend_distro_image_name_default:-talend_distro}}}"
-  local -r talend_version="${talend_version:-{$TALEND_DISTRO_TALEND_VERSION:-${talend_distro_talend_version_default:-8.0.1}}}"
+  local talend_version="${talend_version:-${TALEND_DISTRO_TALEND_VERSION:-${talend_distro_talend_version_default:-8.0.1}}}"
+  local factory_image="${factory_image:-${TALEND_DISTRO_FACTORY_IMAGE:-${talend_distro_factory_image_default:-talend-distro}}}"
+  local factory_tag="${factory_tag:-${TALEND_DISTRO_FACTORY_TAG:-${talend_distro_factory_tag:-${talend_version}}}}"
+
+  # declare parameters
+  local container
+  local volume
+
+  # initialize parameters
+  container="${container:-${TALEND_DISTRO_CONTAINER:-${talend_distro_container_default:-talend-distro}}}"
+  volume="${volume:-${TALEND_DISTRO_VOLUME:-${talend_distro_volume_default:-talend-${talend_version}}}}"
 
   local -r parser_name="${FUNCNAME[0]}_parser"
   # shellcheck disable=SC2016
   if [ ! "$(type -t '${parser_name}')" == 'function' ]; then
 
-    function talend_distro_create_parser_def() {
-      setup   args plus:true help:usage abbr:true -- "Usage: talend_distro [options...] [arguments...]" ''
+    function talend_distro_run_parser_def() {
+      setup   args plus:true help:usage abbr:true -- "Usage: talend_distro_run [options...] [arguments...]" ''
       msg -- 'Options:'
-      param   image_tag            -i    --image        init:="talend-distro"
-      param   container_name       -c    --container    init:=""
-      param   volume_name          -v    --volume       init:=""
+      param   talend_version       -v    --talend_version   init:="${talend_version}"  pattern:"8.0.1 | 7.3.1"
+      param   factory_image        -f    --factory_image    init:="${factory_image}"
+      param   factory_tag          -t    --factory_tag      init:="${factory_tag}"
+      param   container            -c    --container        init:="${container}"
+      param   volume               -v    --volume           init:="${volume}"
       # shellcheck disable=SC1083
       disp    :usage               -h                                                    -- "help summary"
       disp    :usage                     --help                                          -- "help details"
@@ -49,25 +55,29 @@ function talend_distro_run() {
   # reset the stack $@ variable to the positional arguments
   eval "set -- ${args}"
 
-  # calculate derived parameters
-  container_name="${container_name:-${TALEND_DISTRO_CONTAINER_NAME:-${image_name}-${talend_version}}}"
+  # make inherited parameters immutable
+  required talend_version factory_image factory_tag
+  readonly talend_version factory_image factory_tag
 
   # make parameters immutable
-  readonly image_name talend_version container_name
+  required container volume
+  readonly container volume
 
   # configuration settings can be overridden by shell or environment variables
 
   # calculate derived settings
-  local -r image_tag="${image_name}:${talend_version}"
+  local -r container_name="${container}-${talend_version}"
+  local -r image_tag="${factory_image}:${factory_tag}"
 
   # body of the function
 
   infoVar talend_version
-  infoVar image_name
+  infoVar factory_image
+  infoVar factory_tag
   infoVar container_name
-  infoVar image_tag
+  infoVar volume
 
-  docker create --name  "${container_name}" "${image_tag}"
+  docker run --name "${container_name}" -v "${volume}":/talend/downloads "${image_tag}"
 
   return 0
 }

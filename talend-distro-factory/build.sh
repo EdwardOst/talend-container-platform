@@ -14,33 +14,24 @@ source "util/getoptions/getoptions.sh"
 
 function talend_distro_build() {
 
-  # declare inherited parameters and settings if they do not alreayd exist so that the can be used for initialization
-   [ ! "${factory_image+x}" == "x" ] && local factory_image
-   [ ! "${talend_version+x}" == "x" ] && local talend_version
-
   # initialize inherited parameters and settings
-  function talend_distro_build_context() {
-    factory_image="${factory_image:-${TALEND_DISTRO_FACTORY_IMAGE:-${talend_distro_factory_image_default:-talend-distro}}}"
-    talend_version="${talend_version:-${TALEND_DISTRO_TALEND_VERSION:-${talend_distro_talend_version_default:-8.0.1}}}"
-  }
-  talend_distro_build_context
+  local talend_version="${talend_version:-${TALEND_DISTRO_TALEND_VERSION:-${talend_distro_talend_version_default:-8.0.1}}}"
+  local factory_image="${factory_image:-${TALEND_DISTRO_FACTORY_IMAGE:-${talend_distro_factory_image_default:-talend-distro}}}"
+  local factory_tag="${factory_tag:-${TALEND_DISTRO_FACTORY_TAG:-${talend_distro_factory_tag:-${talend_version}}}}"
 
   # declare parameters
   local factory_base_image
-  local factory_base_image_version
+  local factory_base_image_tag
   local credentials
   local manifest
 
   # initialize parameters
-  function talend_distro_build_init() {
-    factory_base_image="${factory_base_image:-${TALEND_DISTRO_FACTORY_BASE_IMAGE:-${talend_distro_factory_base_image_default:-alpine}}}"
-    factory_base_image_version="${factory_base_image_version:-${TALEND_DISTRO_FACTORY_BASE_IMAGE_VERSION:-${talend_distro_factory_base_image_version_default:-3.18.0}}}"
-    credentials="${credentials:-${TALEND_DISTRO_CREDENTIALS:-${talend_distro_credentials_default:-talend.credentials}}}"
-    manifest="${manifest:-${TALEND_DISTRO_MANIFEST:-${talend_distro_manifest_default:-talend.manifest}}}"
-  }
-  talend_distro_build_init
+  factory_base_image="${factory_base_image:-${TALEND_DISTRO_FACTORY_BASE_IMAGE:-${talend_distro_factory_base_image_default:-alpine}}}"
+  factory_base_image_tag="${factory_base_image_tag:-${TALEND_DISTRO_FACTORY_BASE_IMAGE_TAG:-${talend_distro_factory_base_image_tag_default:-3.18.0}}}"
+  credentials="${credentials:-${TALEND_DISTRO_CREDENTIALS:-${talend_distro_credentials_default:-talend.credentials}}}"
+  manifest="${manifest:-${TALEND_DISTRO_MANIFEST:-${talend_distro_manifest_default:-talend.manifest}}}"
 
-  # working variable
+  # helper variables
   local args
 
   local -r parser_name="${FUNCNAME[0]}_parser"
@@ -48,14 +39,15 @@ function talend_distro_build() {
   if [ ! "$(type -t '${parser_name}')" == 'function' ]; then
 
     function talend_distro_build_parser_def() {
-      setup   args plus:true help:usage abbr:true -- "Usage: talend_distro [options...] [arguments...]" ''
+      setup   args plus:true help:usage abbr:true -- "Usage: talend_distro_build [options...] [arguments...]" ''
       msg -- 'Options:'
-      param   talend_version              -v  --talend_version              init:="" pattern:"8.0.1 | 7.3.1"
-      param   factory_image               -f  --factory_image               init:=""
-      param   factory_base_image          -f  --factory_base_image          init:=""
-      param   factory_base_image_version  -g  --factory_base_image_version  init:=""
-      param   credentials                 -c  --credentials                 init:=""
-      param   manifest                    -m  --manifest                    init:=""
+      param   talend_version              -v  --talend_version              init:="${talend_version}"  pattern:"8.0.1 | 7.3.1"
+      param   factory_image               -f  --factory_image               init:="${factory_image}"
+      param   factory_tag                 -t  --factory_tag                 init:="${factory_tag}"
+      param   factory_base_image              --factory_base_image          init:="${factory_base_image}"
+      param   factory_base_image_tag          --factory_base_image_tag      init:="${factory_base_image_tag}"
+      param   credentials                 -c  --credentials                 init:="${credentials}"
+      param   manifest                    -m  --manifest                    init:="${manifest}"
       # shellcheck disable=SC1083
       disp    :usage                      -h                                -- "help summary"
       disp    :usage                          --help                        -- "help details"
@@ -71,25 +63,25 @@ function talend_distro_build() {
   eval "set -- ${args}"
 
   # make inherited parameters immutable
-  required talend_version factory_image
-  readonly talend_version factory_image
+  required talend_version factory_image factory_tag
+  readonly talend_version factory_image factory_tag
 
   # make parameters immutable
-  required factory_base_image factory_base_image_version credentials manifest
-  readonly factory_base_image factory_base_image_version credentials manifest
+  required factory_base_image factory_base_image_tag credentials manifest
+  readonly factory_base_image factory_base_image_tag credentials manifest
 
   # configuration settings can be overridden by shell or environment variables
 
   # calculate derived settings
-  local -r image_tag="${factory_image}:${talend_version}"
+  local -r image_tag="${factory_image}:${factory_tag}"
 
   # body of the function
 
   infoVar talend_version
   infoVar factory_image
-  infoVar image_tag
+  infoVar factory_tag
   infoVar factory_base_image
-  infoVar factory_base_image_version
+  infoVar factory_base_image_tag
   infoVar credentials
   infoVar manifest
 
@@ -97,7 +89,7 @@ function talend_distro_build() {
 
   docker buildx build \
     --build-arg factory_base_image="${factory_base_image}" \
-    --build-arg factory_base_image_version="${factory_base_image_version}" \
+    --build-arg factory_base_image_tag="${factory_base_image_tag}" \
     --build-arg talend_version="${talend_version}" \
     --build-arg talend_manifest="${manifest}" \
     --secret id=talend,src="${credentials}" \
