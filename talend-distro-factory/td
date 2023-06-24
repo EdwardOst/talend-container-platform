@@ -6,5 +6,6 @@ source "./talend-distro.sh"
 
 INFO_LOG=true
 
-#talend_distro build
-talend_distro create
+#talend_distro
+talend_distro build -m short.manifest
+#talend_distro create

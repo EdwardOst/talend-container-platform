@@ -20,9 +20,11 @@ source "create.sh"
 
 function talend_distro() {
 
-  # parameters
-  local talend_version
-  local image_name
+  # declare and initialize inherited parameters and settings
+
+  # declare and initialize parameters
+  local factory_image="${factory_image:-${TALEND_DISTRO_FACTORY_IMAGE:-${talend_distro_factory_image_default:-talend-distro}}}"
+  local talend_version="${talend_version:-${TALEND_DISTRO_TALEND_VERSION:-${talend_distro_talend_version_default:-8.0.1}}}"
 
   # helper variable
   local args
@@ -35,13 +37,13 @@ function talend_distro() {
       setup   args plus:true help:usage abbr:true -- "Usage: talend_distro [options...] [arguments...]" ''
       msg -- 'Options:'
       # shellcheck disable=SC1083
-      param   talend_version       -v    --talend_version    init:="8.0.1" pattern:"8.0.1 | 7.3.1"
-      param   image_name           -i    --image_name        init:="talend-distro"
+      param   talend_version       -v    --talend_version    init:="${talend_version}" pattern:"8.0.1 | 7.3.1"
+      param   factory_image        -f    --factory_image     init:="${factory_image}"
       disp    :usage               -h           -- "help summary"
       disp    :talend_distro_help        --help -- "help details"
       msg -- '' 'Commands'
-      cmd     build                             -- "build the Talend downloads data container image"
-      cmd     create                            -- "create an instance of the Talend downloads data container"
+      cmd     build                             -- "build the Talend distro factory image"
+      cmd     run                               -- "run a Talend distro factory container to create an instance of the Talend downloads volume"
     }
 
     eval "$(getoptions "${parser_name}_def" "${parser_name}")"
@@ -54,17 +56,18 @@ function talend_distro() {
   eval "set -- ${args}"
 
   # make parameters immutable
-  readonly talend_version image_name
+  required talend_version factory_image
+  readonly talend_version factory_image
 
   # configuration settings can be overrident by shell or environment variables
 
   # calculate derived settings
-  local -r image_tag="${image_name}:${talend_version}"
+  local -r image_tag="${factory_image}:${talend_version}"
 
   # body of the function
 
   infoVar talend_version
-  infoVar image_name
+  infoVar factory_image
   infoVar image_tag
 
   if [ $# -gt 0 ]; then
@@ -77,7 +80,14 @@ function talend_distro() {
         ;;
       create)
         shift
-        talend_distro_create "$@"
+        echo "****** talend_distro_run not enabled  *******"
+#        talend_distro_run "$@"
+        return $?
+        ;;
+      test)
+        shift
+        echo "****** talend_distro_test not enabled  *******"
+#        talend_distro_test "$@"
         return $?
         ;;
       --) # no subcommand, arguments only
@@ -110,39 +120,38 @@ Usage:
 
 Options:
 
-    -v talend_version
+    -v    --talend_version
       default = 8.0.1
       The version of Talend software to be downloaded.
       The version will be used as the tag for the image.
 
-    -i image_name
+    -i    --factory_image
       default = talend-distro
-      The name of the data container image to be created.
+      The name of the factory image to be created.
+
 Commands:
 
-    config: initialize talend-distro configuration settings.
+    build: create a factory image for downloading Talend distribution artifacts
 
-    build: builds a docker data container image to hold Talend distribution artifacts.
+    run: run a factory container to create a Volume holding the Talend distribution artifacts.
 
-    create: instantiate an instance of the Talend distribution data container
-
-    test: do a quick test of an instance of the Talend distribution data container.
+    test: do a quick test downloading only sha256 files.
 
 Configuration:
     These configuration settings are initialized based on the following order of precedence:
 
-    1.  Commandline arguments (for parameters only)
-    2.  Shell Variables
-    3.  Environment Variables
+    1.  Commandline arguments
+    2.  Shell variables
+    3.  Environment variables
+    4.  Shell default variables
     4.  hard-coded defaults.
 
-    base_builder_image
+    factory_base_image
       default = alpine
-      The image used as the builder during the docker multistage build.
-      The final stage image is always scratch.
-    base_builder_image_version
+      The base image used to create the factory image.
+    factory_base_image_version
       default = 3.18.0
-      The tag of the build image.
+      The tag of the factory base image.
 EOF
     echo "${usage}"
 }

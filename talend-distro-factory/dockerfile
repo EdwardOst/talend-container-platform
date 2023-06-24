@@ -1,13 +1,24 @@
 # syntax=docker/dockerfile:1
 # Talend download data container
-ARG base_builder_image=alpine
-ARG base_builder_image_version=3.18.0
+ARG factory_base_image=alpine
+ARG factory_base_image_version=3.18.0
 
-FROM ${base_builder_image}:${base_builder_image_version} AS builder
+FROM ${factory_base_image}:${factory_base_image_version} AS builder
 ARG talend_manifest=talend.manifest
+ARG talend_version=8.0.1
+LABEL maintainer="eost@talend.com"
+LABEL talend_version=${talend_version}
 
 RUN apk add wget
-RUN mkdir downloads
+
+# this volume directive is intentionally early in the dockerfile
+# at this stage the content will be empty
+# it is _required_ to provide a volume to the container when run to persist the downloaded files
+
+#VOLUME talend
+
+
+WORKDIR /talend/downloads
 COPY ${talend_manifest} talend.manifest
 RUN --mount=type=secret,id=talend,target=talend.credentials \
   { IFS="=" read -r property_name talend_user; IFS="=" read -r property_name talend_password; } < talend.credentials \
@@ -16,15 +27,4 @@ RUN --mount=type=secret,id=talend,target=talend.credentials \
              wget \
                --quiet \
                --http-user="${talend_user}" \
-               --http-password="${talend_password}" \
-               -P downloads
-
-FROM scratch
-ARG talend_version=8.0.1
-
-LABEL maintainer="eost@talend.com"
-LABEL talend_version=${talend_version}
-
-COPY --from=builder /downloads talend/
-VOLUME talend
-ENTRYPOINT [ "none" ]
+               --http-password="${talend_password}"
