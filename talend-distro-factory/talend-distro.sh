@@ -18,6 +18,9 @@ source "build.sh"
 # shellcheck source=run.sh
 source "run.sh"
 
+# shellcheck source=test.sh
+source "test.sh"
+
 talend_distro() {
 
   # declare and initialize inherited parameters
@@ -52,7 +55,8 @@ __EOF__
       msg -- '' 'Commands'
       cmd     build                             -- "build the Talend distro factory image"
       cmd     run                               -- "run a Talend distro factory container to create an instance of the Talend downloads volume"
-      cmd     test                              -- "run a Talend distro factory container to downloading only sha256 to test connectivity"
+      cmd     short                             -- "run a Talend distro factory container to download only sha256 to test connectivity"
+      cmd     test                              -- "list the content of the Talend distro volume"
     }
 
     eval "$(getoptions "${parser_name}_def" "${parser_name}")"
@@ -95,8 +99,7 @@ __EOF__
         ;;
       test)
         shift
-        echo "****** talend_distro_test not enabled  *******"
-#        talend_distro_test "$@"
+        talend_distro_test "$@"
         return $?
         ;;
       --) # no subcommand, arguments only
@@ -147,7 +150,9 @@ Commands:
 
     run: run a factory container to create a Volume holding the Talend distribution artifacts.
 
-    test: do a quick test downloading only sha256 files.
+    short: run a quick test downloading only sha256 files.
+
+    test: list the content of the Talend distro Volume.
 
 Configuration:
     These configuration settings are initialized based on the following order of precedence:

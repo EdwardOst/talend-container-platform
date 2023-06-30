@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+[ "${TALEND_DISTRO_INIT_FLAG:-0}" -gt 0 ] && return 0
+
+export TALEND_DISTRO_INIT_FLAG=1
+
+# shellcheck source=util/util.sh
+source "util/util.sh"
+
+# shellcheck source=util/getoptions/getoptions.sh
+source "util/getoptions/getoptions.sh"
+
+# shellcheck source=talend-distro.sh
+source "talend-distro.sh"
+
+# shellcheck source=build.sh
+source "build.sh"
+
+# shellcheck source=run.sh
+source "run.sh"
+
+# shellcheck source=test.sh
+source "test.sh"

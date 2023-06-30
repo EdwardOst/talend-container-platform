@@ -45,7 +45,7 @@ __EOF__
       param   factory_image        -f    --factory_image    init:="${factory_image}"
       param   factory_tag          -t    --factory_tag      init:="${factory_tag}"
       param   container            -c    --container        init:="${container}"
-      param   volume               -v    --volume           init:="${volume}"
+      param   volume                     --volume           init:="${volume}"
       # shellcheck disable=SC1083
       disp    :usage               -h                                                    -- "help summary"
       disp    :usage                     --help                                          -- "help details"
