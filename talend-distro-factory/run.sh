@@ -16,18 +16,23 @@ function talend_distro_run() {
 
   local args
 
-  # declare and initialize inherited parameters and settings
-  local talend_version="${talend_version:-${TALEND_DISTRO_TALEND_VERSION:-${talend_distro_talend_version_default:-8.0.1}}}"
-  local factory_image="${factory_image:-${TALEND_DISTRO_FACTORY_IMAGE:-${talend_distro_factory_image_default:-talend-distro}}}"
-  local factory_tag="${factory_tag:-${TALEND_DISTRO_FACTORY_TAG:-${talend_distro_factory_tag:-${talend_version}}}}"
+  # declare and initialize inherited parameters
+  # shellcheck disable=SC2154
+  eval "${talend_distro_init_cmd}"
 
   # declare parameters
   local container
   local volume
 
   # initialize parameters
-  container="${container:-${TALEND_DISTRO_CONTAINER:-${talend_distro_container_default:-talend-distro}}}"
-  volume="${volume:-${TALEND_DISTRO_VOLUME:-${talend_distro_volume_default:-talend-${talend_version}}}}"
+  local talend_distro_run_init_cmd
+  define talend_distro_run_init_cmd <<"__EOF__"
+    container="${container:-${TALEND_DISTRO_CONTAINER:-${talend_distro_container_default:-talend-distro}}}"
+    volume="${volume:-${TALEND_DISTRO_VOLUME:-${talend_distro_volume_default:-talend-${talend_version}}}}"
+__EOF__
+  readonly talend_distro_run_init_cmd
+  eval "${talend_distro_run_init_cmd}"
+
 
   local -r parser_name="${FUNCNAME[0]}_parser"
   # shellcheck disable=SC2016
@@ -77,7 +82,7 @@ function talend_distro_run() {
   infoVar container_name
   infoVar volume
 
-  docker run --name "${container_name}" -v "${volume}":/talend/downloads "${image_tag}"
+  docker run --name "${container_name}" -v "${volume}":/talend/downloads --rm "${image_tag}"
 
   return 0
 }

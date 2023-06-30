@@ -12,24 +12,23 @@ source "util/util.sh"
 # shellcheck source=util/getoptions/getoptions.sh
 source "util/getoptions/getoptions.sh"
 
-function talend_distro_build() {
 
-  # initialize inherited parameters and settings
-  local talend_version="${talend_version:-${TALEND_DISTRO_TALEND_VERSION:-${talend_distro_talend_version_default:-8.0.1}}}"
-  local factory_image="${factory_image:-${TALEND_DISTRO_FACTORY_IMAGE:-${talend_distro_factory_image_default:-talend-distro}}}"
-  local factory_tag="${factory_tag:-${TALEND_DISTRO_FACTORY_TAG:-${talend_distro_factory_tag:-${talend_version}}}}"
+talend_distro_build() {
 
-  # declare parameters
-  local factory_base_image
-  local factory_base_image_tag
-  local credentials
-  local manifest
+  # declare and initialize inherited parameters
+  # shellcheck disable=SC2154
+  eval "${talend_distro_init_cmd}"
 
-  # initialize parameters
-  factory_base_image="${factory_base_image:-${TALEND_DISTRO_FACTORY_BASE_IMAGE:-${talend_distro_factory_base_image_default:-alpine}}}"
-  factory_base_image_tag="${factory_base_image_tag:-${TALEND_DISTRO_FACTORY_BASE_IMAGE_TAG:-${talend_distro_factory_base_image_tag_default:-3.18.0}}}"
-  credentials="${credentials:-${TALEND_DISTRO_CREDENTIALS:-${talend_distro_credentials_default:-talend.credentials}}}"
-  manifest="${manifest:-${TALEND_DISTRO_MANIFEST:-${talend_distro_manifest_default:-talend.manifest}}}"
+  # declare and initialize parameters
+  local talend_distro_build_init_cmd
+  define talend_distro_build_init_cmd << "__EOF__"
+    local factory_base_image="${factory_base_image:-${TALEND_DISTRO_FACTORY_BASE_IMAGE:-${talend_distro_factory_base_image_default:-alpine}}}"
+    local factory_base_image_tag="${factory_base_image_tag:-${TALEND_DISTRO_FACTORY_BASE_IMAGE_TAG:-${talend_distro_factory_base_image_tag_default:-3.18.0}}}"
+    local credentials="${credentials:-${TALEND_DISTRO_CREDENTIALS:-${talend_distro_credentials_default:-talend.credentials}}}"
+    local manifest="${manifest:-${TALEND_DISTRO_MANIFEST:-${talend_distro_manifest_default:-talend.manifest}}}"
+__EOF__
+  readonly talend_distro_build_init_cmd
+  eval "${talend_distro_build_init_cmd}"
 
   # helper variables
   local args
@@ -38,7 +37,7 @@ function talend_distro_build() {
   # shellcheck disable=SC2016
   if [ ! "$(type -t '${parser_name}')" == 'function' ]; then
 
-    function talend_distro_build_parser_def() {
+    talend_distro_build_parser_def() {
       setup   args plus:true help:usage abbr:true -- "Usage: talend_distro_build [options...] [arguments...]" ''
       msg -- 'Options:'
       param   talend_version              -v  --talend_version              init:="${talend_version}"  pattern:"8.0.1 | 7.3.1"

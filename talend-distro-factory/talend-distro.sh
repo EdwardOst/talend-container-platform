@@ -18,21 +18,20 @@ source "build.sh"
 # shellcheck source=run.sh
 source "run.sh"
 
-function talend_distro() {
+talend_distro() {
 
-  # declare and initialize inherited parameters and settings if they do not already exist so that they do not pollute the global shell space when initialized
+  # declare and initialize inherited parameters
 
-  # initialize inherited parameters and settings
+  # declare and initialize parameters
+  local talend_distro_init_cmd
+  define talend_distro_init_cmd << "__EOF__"
+    local talend_version="${talend_version:-${TALEND_DISTRO_TALEND_VERSION:-${talend_distro_talend_version_default:-8.0.1}}}"
+    local factory_image="${factory_image:-${TALEND_DISTRO_FACTORY_IMAGE:-${talend_distro_factory_image_default:-talend-distro}}}"
+    local factory_tag="${factory_tag:-${TALEND_DISTRO_FACTORY_TAG:-${talend_distro_factory_tag:-${talend_version}}}}"
+__EOF__
+  readonly talend_distro_init_cmd
 
-  # declare parameters
-  local talend_version
-  local factory_image
-  local factory_tag
-
-  # initialize parameters
-  talend_version="${talend_version:-${TALEND_DISTRO_TALEND_VERSION:-${talend_distro_talend_version_default:-8.0.1}}}"
-  factory_image="${factory_image:-${TALEND_DISTRO_FACTORY_IMAGE:-${talend_distro_factory_image_default:-talend-distro}}}"
-  factory_tag="${factory_tag:-${TALEND_DISTRO_FACTORY_TAG:-${talend_distro_factory_tag:-${talend_version}}}}"
+  eval "${talend_distro_init_cmd}"
 
   # helper variables
   local args
@@ -41,11 +40,11 @@ function talend_distro() {
   # shellcheck disable=SC2016
   if [ ! "$(type -t '${parser_name}')" == 'function' ]; then
 
-    function talend_distro_parser_def() {
+    talend_distro_parser_def() {
       setup   args plus:true help:usage abbr:true -- "Usage: talend_distro [options...] [arguments...]" ''
       msg -- 'Options:'
       # shellcheck disable=SC1083
-      param   talend_version       -v    --talend_version    init:="${talend_version}" pattern:"8.0.1 | 7.3.1"
+      param   talend_version       -v    --talend_version    init:="${talend_version}"    pattern:"8.0.1 | 7.3.1"
       param   factory_image        -f    --factory_image     init:="${factory_image}"
       param   factory_tag          -t    --factory_tag       init:="${factory_tag}"
       disp    :usage               -h           -- "help summary"
@@ -117,7 +116,7 @@ function talend_distro() {
 }
 
 
-function talend_distro_help() {
+talend_distro_help() {
   local usage
   define usage <<EOF
 Tools to download Talend subscription binary artifacts.
